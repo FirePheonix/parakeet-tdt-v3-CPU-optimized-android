@@ -39,8 +39,8 @@ dependencies {
     implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     
-    // Sherpa-ONNX dependency
-    implementation("com.k2-fsa:sherpa-onnx:1.10.15")
+    // Sherpa-ONNX dependency via local jar
+    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))
     
     // For extracting .tar.bz2 models
     implementation("org.apache.commons:commons-compress:1.26.0")
