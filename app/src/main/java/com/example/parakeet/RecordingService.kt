@@ -46,16 +46,19 @@ class RecordingService : Service() {
         ModelManager.ensureModelReady(this, onProgress = {
             Log.d("RecordingService", "Model progress: $it")
         }, onReady = { modelDir ->
-            val config = OfflineRecognizerConfig(
-                modelConfig = OfflineModelConfig(
-                    nemoCtc = OfflineNemoEncDecCtcModelConfig(
-                        model = File(modelDir, "model.int8.onnx").absolutePath
-                    ),
-                    tokens = File(modelDir, "tokens.txt").absolutePath,
-                    numThreads = 4,
-                    debug = false
-                )
-            )
+            val nemoConfig = OfflineNemoEncDecCtcModelConfig.builder()
+                .setModel(File(modelDir, "model.int8.onnx").absolutePath)
+                .build()
+            val modelConfig = OfflineModelConfig.builder()
+                .setNemo(nemoConfig)
+                .setTokens(File(modelDir, "tokens.txt").absolutePath)
+                .setNumThreads(4)
+                .setDebug(false)
+                .build()
+            val config = OfflineRecognizerConfig.builder()
+                .setOfflineModelConfig(modelConfig)
+                .build()
+
             recognizer = OfflineRecognizer(config)
             Log.d("RecordingService", "Model Ready")
         })
@@ -127,9 +130,6 @@ class RecordingService : Service() {
                     if (stream != null) {
                         val samples = FloatArray(readResult) { i -> buffer[i] / 32768.0f }
                         stream.acceptWaveform(samples, sampleRate)
-                        while (recognizer?.isReady(stream) == true) {
-                            recognizer?.decode(stream)
-                        }
                     }
                 }
             }
@@ -143,10 +143,7 @@ class RecordingService : Service() {
             raf.close()
 
             if (stream != null) {
-                stream.inputFinished()
-                while (recognizer?.isReady(stream) == true) {
-                    recognizer?.decode(stream)
-                }
+                recognizer?.decode(stream)
                 val finalResult = recognizer?.getResult(stream)?.text ?: ""
                 
                 FileOutputStream(textFile).use { it.write(finalResult.toByteArray()) }
